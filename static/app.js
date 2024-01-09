@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // old logic
 
+
     
     function click_handler() {
         socket.emit('testcommand', {"content": "x"});
@@ -87,5 +88,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     socket.emit('update_chessboard')
+
+    const resetButton = document.getElementsByTagName("button")[0]
+    resetButton.addEventListener('click', resetBoard);
+
+    function resetBoard() {
+        socket.emit('reset_board')
+    }
 
 });

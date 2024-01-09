@@ -42,6 +42,13 @@ def index():
 
 @socketio.on('update_chessboard')
 def update_chessboard():
+    global board
+    emit('draw_chessboard', board_to_array(board))
+
+@socketio.on('reset_board')
+def reset_board():
+    global board
+    board = chess.Board()
     emit('draw_chessboard', board_to_array(board))
 
 @socketio.on('click_board')
@@ -50,6 +57,7 @@ def click_board_handler(data):
     square = index_to_move(data["square"])
 
     global buffered_move
+    global board
 
     if buffered_move is None:
         buffered_move = square
