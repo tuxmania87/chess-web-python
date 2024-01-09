@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', function () {
+
+    function getSearchParameters() {
+        var prmstr = window.location.search.substr(1);
+        return prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+    }
+    
+    function transformToAssocArray( prmstr ) {
+        var params = {};
+        var prmarr = prmstr.split("&");
+        for ( var i = 0; i < prmarr.length; i++) {
+            var tmparr = prmarr[i].split("=");
+            params[tmparr[0]] = tmparr[1];
+        }
+        return params;
+    }
+
     const chessboard = document.getElementById('chessboard');
 
     const socket = io();
@@ -11,7 +27,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // You can now use squareCoordinates to determine which square was clicked
         console.log('Clicked square:', squareCoordinates);
-        socket.emit('click_board', { 'square': squareCoordinates})
+        var game_id = getSearchParameters()["game_id"]
+        socket.emit('click_board', { 'square': squareCoordinates, 'game_id': game_id})
     }
 
     // Function to get square coordinates (row and column)
@@ -25,25 +42,6 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // old logic
 
-
-    
-    function click_handler() {
-        socket.emit('testcommand', {"content": "x"});
-    }
-
-    //const board = new Chess();
-
-    // Example function to handle a move
-    function makeMove(fromSquare, toSquare) {
-        // Validate the move on the client (additional validation)
-        if (!board.move({ from: fromSquare, to: toSquare })) {
-            console.log('Invalid move');
-            return;
-        }
-
-        // Send the move to the server using WebSockets
-        socket.emit('move', { fromSquare, toSquare });
-    }
 
     // Your chessboard UI code and event listeners go here
 
@@ -86,14 +84,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
     }
-
-    socket.emit('update_chessboard')
+    var game_id = getSearchParameters()["game_id"]
+    console.log(getSearchParameters())
+    socket.emit('update_chessboard', { 'game_id' : game_id})
 
     const resetButton = document.getElementsByTagName("button")[0]
     resetButton.addEventListener('click', resetBoard);
 
     function resetBoard() {
-        socket.emit('reset_board')
+        var game_id = getSearchParameters()["game_id"]
+        socket.emit('reset_board',{ 'game_id' : game_id } )
     }
 
 });

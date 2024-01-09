@@ -1,8 +1,19 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 import logging 
 import chess
  
+class Game:
+    def __init__(self) -> None:
+        self.buffered_move = None
+        self.board = chess.Board()
+
+def get_game(games, id):
+    app.logger.info(f"Called get game with {id}")
+    if id not in games:
+        games[id] = Game()
+    return games[id]
+
 def board_to_array(board):
     bb = []
     bb_row = []
@@ -31,8 +42,7 @@ def index_to_move(index):
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-board = chess.Board()
-
+games = {}
 buffered_move = None
 
 @app.route('/')
@@ -41,58 +51,39 @@ def index():
 
 
 @socketio.on('update_chessboard')
-def update_chessboard():
-    global board
-    emit('draw_chessboard', board_to_array(board))
+def update_chessboard(data):
+    global games
+    game_id = data["game_id"]
+    game = get_game(games, game_id)
+    emit('draw_chessboard', board_to_array(game.board))
 
 @socketio.on('reset_board')
-def reset_board():
-    global board
-    board = chess.Board()
-    emit('draw_chessboard', board_to_array(board))
+def reset_board(data):
+    global games
+    game_id = data["game_id"]
+    game = get_game(games, game_id)
+    emit('draw_chessboard', board_to_array(game.board))
 
 @socketio.on('click_board')
 def click_board_handler(data):
     app.logger.info(f"clicked {data}")
     square = index_to_move(data["square"])
 
-    global buffered_move
-    global board
-
-    if buffered_move is None:
-        buffered_move = square
+    global games
+    game_id = data["game_id"]
+    game = get_game(games, game_id)
+    
+    if game.buffered_move is None:
+        game.buffered_move = square
     else:
         try:
-            board.push_uci(f"{buffered_move}{square}") 
-            app.logger.info(f"Made move {buffered_move}{square}")
+            game.board.push_uci(f"{game.buffered_move}{square}") 
+            app.logger.info(f"Made move {game.buffered_move}{square}")
         except: 
             pass 
         finally:
-            buffered_move = None
-            emit('draw_chessboard', board_to_array(board))
-
-@socketio.on('testcommand')
-def click_handler(data):
-    logging.info("clicked")
-    emit("click_response", {'click_response': 'foobar'}, broadcast=True)    
-
-@socketio.on('move')
-def handle_move(data):
-    from_square = data.get('fromSquare')
-    to_square = data.get('toSquare')
-
-    # Validate the move
-    is_valid_move = validate_chess_move(from_square, to_square)
-
-    if is_valid_move:
-        # Update the game state
-        # Emit the updated state to all connected clients
-        emit('update_board', {'fromSquare': from_square, 'toSquare': to_square}, broadcast=True)
-
-def validate_chess_move(from_square, to_square):
-    # Implement your move validation logic (e.g., check if the move is legal)
-    # For simplicity, this example always returns True
-    return True
+            game.buffered_move = None
+            emit('draw_chessboard', board_to_array(game.board))
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
